@@ -24,7 +24,9 @@ import TarotCard from '../components/tarot/TarotCard';
 import { saveReading } from '../lib/readings';
 
 interface Card {
-  // Add your card interface properties here
+  name: string;
+  position: number;
+  reversed: boolean;
 }
 
 const TarotPage: React.FC = () => {
@@ -35,7 +37,6 @@ const TarotPage: React.FC = () => {
   const [cards, setCards] = useState<Card[]>([]);
 
   const getCardLabel = (index: number): string => {
-    // Add your card label logic here
     return `Position ${index + 1}`;
   };
 
@@ -69,9 +70,17 @@ const TarotPage: React.FC = () => {
   };
 
   return (
-    <div>
-      {/* Add your component JSX here */}
-    </div>
+    <MainLayout>
+      <div className="container mx-auto px-4 py-12">
+        <h1 className="text-3xl font-cinzel font-bold mb-8">Tarot Reading</h1>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="space-y-6">
+            {/* Tarot spread selection and cards will be added here */}
+            <p className="text-gray-600">Tarot reading implementation coming soon...</p>
+          </div>
+        </div>
+      </div>
+    </MainLayout>
   );
 };
 

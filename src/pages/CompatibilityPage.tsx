@@ -19,6 +19,17 @@ import {
 import { saveReading } from '../lib/readings';
 
 const CompatibilityPage = () => {
+  const { user } = useUser();
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [sign1, setSign1] = useState('');
+  const [sign2, setSign2] = useState('');
+  const [compatibilityScore, setCompatibilityScore] = useState(0);
+  const [areaScores, setAreaScores] = useState({});
+  const [birthDateTime1, setBirthDateTime1] = useState('');
+  const [birthDateTime2, setBirthDateTime2] = useState('');
+  const [birthPlace1, setBirthPlace1] = useState('');
+  const [birthPlace2, setBirthPlace2] = useState('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setHasSubmitted(true);
@@ -45,9 +56,17 @@ const CompatibilityPage = () => {
   };
 
   return (
-    <div>
-      {/* Component JSX content here */}
-    </div>
+    <MainLayout>
+      <div className="container mx-auto px-4 py-12">
+        <h1 className="text-3xl font-cinzel font-bold mb-8">Compatibility Reading</h1>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Form content will be added here */}
+            <p className="text-gray-600">Form implementation coming soon...</p>
+          </form>
+        </div>
+      </div>
+    </MainLayout>
   );
 };
 
