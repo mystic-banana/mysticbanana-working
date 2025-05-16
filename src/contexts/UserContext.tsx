@@ -1,25 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
+import { Database } from '../lib/database.types';
 
-type UserType = {
-  id: string;
-  name: string;
-  email: string;
-  birthDate?: string;
-  birthTime?: string;
-  birthPlace?: string;
-  zodiacSign?: string;
-  isPremium: boolean;
-} | null;
-
-interface UserContextType {
-  user: UserType;
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type UserContextType = {
+  user: (User & { profile?: Profile }) | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (userData: any) => Promise<void>;
-  logout: () => void;
-  updateUserProfile: (data: any) => Promise<void>;
-}
+  logout: () => Promise<void>;
+  updateUserProfile: (data: Partial<Profile>) => Promise<void>;
+};
 
 const UserContext = createContext<UserContextType>({
   user: null,
@@ -27,91 +20,135 @@ const UserContext = createContext<UserContextType>({
   isLoading: true,
   login: async () => {},
   register: async () => {},
-  logout: () => {},
+  logout: async () => {},
   updateUserProfile: async () => {},
 });
 
 export const useUser = () => useContext(UserContext);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserType>(null);
+  const [user, setUser] = useState<(User & { profile?: Profile }) | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate getting user data from localStorage on mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('mysticBananaUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchProfile(session.user);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        fetchProfile(session.user);
+      } else {
+        setUser(null);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Mock authentication functions
+  const fetchProfile = async (authUser: User) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+
+      if (error) throw error;
+
+      setUser({ ...authUser, profile });
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const login = async (email: string, password: string) => {
-    // Simulate API call
-    setIsLoading(true);
-    
-    // For demo purposes, we'll create a mock user
-    const mockUser = {
-      id: '123456',
-      name: 'Demo User',
-      email,
-      birthDate: '1990-01-01',
-      birthTime: '12:00',
-      birthPlace: 'New York, USA',
-      zodiacSign: 'Capricorn',
-      isPremium: false
-    };
-    
-    // Simulate a delay for API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setUser(mockUser);
-    localStorage.setItem('mysticBananaUser', JSON.stringify(mockUser));
-    setIsLoading(false);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+      if (data.user) {
+        await fetchProfile(data.user);
+      }
+    } catch (error) {
+      console.error('Error logging in:', error);
+      throw error;
+    }
   };
 
   const register = async (userData: any) => {
-    // Simulate API call
-    setIsLoading(true);
-    
-    // Create a user object with the provided data
-    const newUser = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: userData.name,
-      email: userData.email,
-      birthDate: userData.birthDate,
-      birthTime: userData.birthTime,
-      birthPlace: userData.birthPlace,
-      zodiacSign: userData.zodiacSign || 'Aries', // Default or calculate based on birth date
-      isPremium: false
-    };
-    
-    // Simulate a delay for API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setUser(newUser);
-    localStorage.setItem('mysticBananaUser', JSON.stringify(newUser));
-    setIsLoading(false);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+      });
+
+      if (error) throw error;
+      if (!data.user) throw new Error('No user returned after registration');
+
+      // Create profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            id: data.user.id,
+            name: userData.name,
+            birth_date: userData.birthDate,
+            birth_time: userData.birthTime,
+            birth_place: userData.birthPlace,
+            zodiac_sign: userData.zodiacSign,
+            is_premium: false,
+          },
+        ]);
+
+      if (profileError) throw profileError;
+      await fetchProfile(data.user);
+    } catch (error) {
+      console.error('Error registering:', error);
+      throw error;
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('mysticBananaUser');
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setUser(null);
+    } catch (error) {
+      console.error('Error logging out:', error);
+      throw error;
+    }
   };
 
-  const updateUserProfile = async (data: any) => {
-    setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Update user data
-    const updatedUser = { ...user, ...data };
-    setUser(updatedUser);
-    localStorage.setItem('mysticBananaUser', JSON.stringify(updatedUser));
-    
-    setIsLoading(false);
+  const updateUserProfile = async (data: Partial<Profile>) => {
+    if (!user) throw new Error('No user logged in');
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(data)
+        .eq('id', user.id);
+
+      if (error) throw error;
+      await fetchProfile(user);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
   };
 
   return (
