@@ -100,13 +100,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: {
             name: userData.name,
           },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (authError) throw authError;
       if (!authData.user) throw new Error('No user returned after registration');
 
-      // Then create the profile using the service role client
+      // Then create the profile
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([
