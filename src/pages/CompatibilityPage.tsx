@@ -1,3 +1,21 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useUser } from '../contexts/UserContext';
+import MainLayout from '../components/layout/MainLayout';
+import { 
+  HeartHandshake,
+  FileText,
+  Star,
+  Info,
+  X,
+  Check,
+  Sparkles,
+  Heart,
+  UserCircle,
+  Search,
+  ChevronDown,
+  Download
+} from 'lucide-react';
 import { saveReading } from '../lib/readings';
 
 const CompatibilityPage = () => {
