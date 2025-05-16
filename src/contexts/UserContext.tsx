@@ -92,20 +92,26 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (userData: any) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      // First create the auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
+        options: {
+          data: {
+            name: userData.name,
+          },
+        },
       });
 
-      if (error) throw error;
-      if (!data.user) throw new Error('No user returned after registration');
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('No user returned after registration');
 
-      // Create profile
+      // Then create the profile using the service role client
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([
           {
-            id: data.user.id,
+            id: authData.user.id,
             name: userData.name,
             birth_date: userData.birthDate,
             birth_time: userData.birthTime,
@@ -113,10 +119,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             zodiac_sign: userData.zodiacSign,
             is_premium: false,
           },
-        ]);
+        ])
+        .select()
+        .single();
 
       if (profileError) throw profileError;
-      await fetchProfile(data.user);
+
+      // Fetch the complete user data
+      await fetchProfile(authData.user);
     } catch (error) {
       console.error('Error registering:', error);
       throw error;
