@@ -12,6 +12,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import MainLayout from '../components/layout/MainLayout';
+import BlogSection from '../components/blog/BlogSection';
 
 const HomePage: React.FC = () => {
   // Animation variants
@@ -181,6 +182,9 @@ const HomePage: React.FC = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* Blog Section */}
+      <BlogSection />
       
       {/* Premium Features Section */}
       <section className="py-16 bg-surface/30 backdrop-blur-lg">
