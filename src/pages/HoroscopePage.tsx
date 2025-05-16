@@ -4,6 +4,7 @@ import { format, addDays } from 'date-fns';
 import { useUser } from '../contexts/UserContext';
 import MainLayout from '../components/layout/MainLayout';
 import { CloudMoon, ChevronRight, Star, FileText, CalendarDays, Sun, Moon, Sparkles, ArrowRight, ArrowLeft, Heart, Briefcase, Brain, Coins, Merge as Energy, Clock } from 'lucide-react';
+import { saveReading } from '../lib/readings';
 
 // Sample zodiac data
 const zodiacSigns = [
@@ -76,6 +77,27 @@ const HoroscopePage: React.FC = () => {
   
   const resetToToday = () => {
     setCurrentDayOffset(0);
+  };
+
+  // Update the horoscope generation to save readings
+  const generateHoroscope = async () => {
+    // ... existing horoscope generation code ...
+
+    // Save reading to Supabase
+    try {
+      await saveReading({
+        user_id: user?.id as string,
+        type: 'horoscope',
+        content: {
+          type: horoscopeType,
+          sign: selectedSign,
+          date: getFormattedDate(),
+          aspects: areaScores
+        }
+      });
+    } catch (error) {
+      console.error('Error saving reading:', error);
+    }
   };
 
   return (
