@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useUser } from '../../contexts/UserContext';
+import { useAdmin } from '../../contexts/AdminContext';
 import { 
   Settings, 
   Users, 
@@ -10,17 +11,26 @@ import {
   Shield, 
   LogOut,
   Menu,
-  X
+  X,
+  ClipboardList
 } from 'lucide-react';
 
 const AdminLayout: React.FC = () => {
   const { user, isAuthenticated, logout } = useUser();
+  const { isAdmin, adminData, isLoading } = useAdmin();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
   const location = useLocation();
 
-  // Check if user is admin
-  const isAdmin = user?.role === 'admin' || user?.role === 'editor';
+  // Show loading state while checking admin status
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
+      </div>
+    );
+  }
 
+  // Redirect to login if not authenticated or not an admin
   if (!isAuthenticated || !isAdmin) {
     return <Navigate to="/login" state={{ from: location.pathname }} />;
   }
@@ -29,6 +39,7 @@ const AdminLayout: React.FC = () => {
     { path: '/admin/dashboard', label: 'Dashboard', icon: <BarChart className="w-5 h-5" /> },
     { path: '/admin/users', label: 'Users', icon: <Users className="w-5 h-5" /> },
     { path: '/admin/blog', label: 'Blog Posts', icon: <FileText className="w-5 h-5" /> },
+    { path: '/admin/audit-log', label: 'Audit Log', icon: <ClipboardList className="w-5 h-5" /> },
     { path: '/admin/settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> },
   ];
 
@@ -101,7 +112,7 @@ const AdminLayout: React.FC = () => {
             <div className="flex items-center space-x-4">
               <div className="text-sm">
                 <span className="text-white/60">Logged in as </span>
-                <span className="text-white font-medium">{user?.name}</span>
+                <span className="text-white font-medium">{adminData?.role || 'Admin'}</span>
               </div>
             </div>
           </div>
