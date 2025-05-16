@@ -57,17 +57,39 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (authUser: User) => {
     try {
+      // First try to get the existing profile
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
-      setUser({ ...authUser, profile });
+      if (!profile) {
+        // If no profile exists, create a default one
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: authUser.id,
+              name: authUser.user_metadata?.name || null,
+              is_premium: false,
+            },
+          ])
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        setUser({ ...authUser, profile: newProfile });
+      } else {
+        setUser({ ...authUser, profile });
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      // Even if there's an error, we still want to set the auth user
+      setUser(authUser);
     } finally {
       setIsLoading(false);
     }
