@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useUser } from '../contexts/UserContext';
 import { User, Mail, Lock, Calendar, MapPin, Clock, ArrowRight, Loader2 } from 'lucide-react';
 import MainLayout from '../components/layout/MainLayout';
+
+const RATE_LIMIT_DELAY = 50000; // 50 seconds in milliseconds
 
 const RegisterPage: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -18,6 +20,7 @@ const RegisterPage: React.FC = () => {
   });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastSubmitTime, setLastSubmitTime] = useState(0);
   
   const { register } = useUser();
   const navigate = useNavigate();
@@ -66,6 +69,18 @@ const RegisterPage: React.FC = () => {
     setError('');
     setStep(1);
   };
+
+  const checkRateLimit = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastSubmit = now - lastSubmitTime;
+    
+    if (timeSinceLastSubmit < RATE_LIMIT_DELAY) {
+      const remainingTime = Math.ceil((RATE_LIMIT_DELAY - timeSinceLastSubmit) / 1000);
+      throw new Error(`Please wait ${remainingTime} seconds before trying again`);
+    }
+    
+    return true;
+  }, [lastSubmitTime]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +90,9 @@ const RegisterPage: React.FC = () => {
     }
     
     try {
+      // Check rate limit before proceeding
+      checkRateLimit();
+      
       setIsSubmitting(true);
       setError('');
       
@@ -101,10 +119,19 @@ const RegisterPage: React.FC = () => {
         ...formData,
         zodiacSign,
       });
+
+      // Update last submit time after successful registration
+      setLastSubmitTime(Date.now());
       
       navigate('/dashboard');
-    } catch (err) {
-      setError('Failed to create account. Please try again.');
+    } catch (err: any) {
+      if (err.message.includes('rate limit')) {
+        setError(err.message);
+      } else if (err.message.includes('row-level security policy')) {
+        setError('Unable to create profile. Please try again.');
+      } else {
+        setError('Failed to create account. Please try again.');
+      }
       console.error(err);
     } finally {
       setIsSubmitting(false);
